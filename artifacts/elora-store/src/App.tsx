@@ -32,8 +32,90 @@ import {
 } from '@workspace/api-client-react';
 import { Route, Switch, Link, useLocation, useSearch, Router as WouterRouter } from 'wouter';
 import NotFound from '@/pages/not-found';
+import { useToast } from '@/hooks/use-toast';
 
 const queryClient = new QueryClient();
+
+const DEFAULT_PRODUCTS: Product[] = [
+  {
+    id: 'sol-pendant',
+    name: 'Sol Pendant',
+    category: 'Necklaces',
+    description: 'A soft sculptural pendant that catches the light with every movement.',
+    price: 68,
+    currency: 'usd',
+    image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=1200&q=86',
+    material: 'Gold vermeil',
+    featured: true,
+    badge: 'New arrival',
+    stripePriceId: null,
+  },
+  {
+    id: 'mira-hoops',
+    name: 'Mira Hoops',
+    category: 'Earrings',
+    description: 'Lightweight, polished hoops with a subtle organic curve.',
+    price: 54,
+    currency: 'usd',
+    image: 'https://images.unsplash.com/photo-1635767798638-3e25273a8236?auto=format&fit=crop&w=1200&q=86',
+    material: 'Sterling silver',
+    featured: true,
+    badge: 'Bestseller',
+    stripePriceId: null,
+  },
+  {
+    id: 'lune-cuff',
+    name: 'Lune Cuff',
+    category: 'Bracelets',
+    description: 'A clean open cuff designed to sit close and stack beautifully.',
+    price: 72,
+    currency: 'usd',
+    image: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?auto=format&fit=crop&w=1200&q=86',
+    material: 'Gold plated brass',
+    featured: true,
+    badge: null,
+    stripePriceId: null,
+  },
+  {
+    id: 'orla-ring',
+    name: 'Orla Ring',
+    category: 'Rings',
+    description: 'A rounded signet-inspired ring with a quietly confident finish.',
+    price: 46,
+    currency: 'usd',
+    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1200&q=86',
+    material: 'Recycled brass',
+    featured: false,
+    badge: 'Everyday',
+    stripePriceId: null,
+  },
+  {
+    id: 'sola-clip',
+    name: 'Sola Clip',
+    category: 'Hair',
+    description: 'A glossy sculptural clip for an effortless up-do in seconds.',
+    price: 32,
+    currency: 'usd',
+    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1200&q=86',
+    material: 'Acetate',
+    featured: false,
+    badge: 'Small joy',
+    stripePriceId: null,
+  },
+  {
+    id: 'noa-chain',
+    name: 'Noa Chain',
+    category: 'Necklaces',
+    description: 'A fine chain with just enough presence to wear on its own.',
+    price: 84,
+    currency: 'usd',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&q=86',
+    material: 'Gold vermeil',
+    featured: false,
+    badge: null,
+    stripePriceId: null,
+  },
+];
 
 type CartLine = { product: Product; quantity: number };
 
@@ -144,7 +226,10 @@ function CartDrawer({ cart, open, onClose, onChange, onRemove, onCheckout, check
 
 function QuickView({ productId, onClose, onAdd }: { productId: string | null; onClose: () => void; onAdd: (product: Product) => void }) {
   const productQuery = useGetProduct(productId || '', { query: { enabled: Boolean(productId), queryKey: getGetProductQueryKey(productId || '') } });
-  const product = productQuery.data;
+  const rawProduct = (productQuery.data && typeof productQuery.data === 'object' && 'name' in productQuery.data) ? (productQuery.data as Product) : null;
+  const fallbackProduct = productId ? DEFAULT_PRODUCTS.find((p) => p.id === productId) : null;
+  const product = rawProduct || fallbackProduct;
+
   if (!productId) return null;
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center bg-[#33212c]/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Product details">
@@ -153,7 +238,29 @@ function QuickView({ productId, onClose, onAdd }: { productId: string | null; on
         <button type="button" onClick={onClose} data-testid="button-close-quick-view" className="absolute right-4 top-4 z-20 rounded-full bg-[#faeee4]/80 p-2 text-[#4b2739] backdrop-blur hover:bg-[#efd1c0]"><X size={18} /></button>
         <div className="min-h-[300px] bg-[#d99a83] sm:min-h-[520px]"><>{product ? <ProductImage product={product} /> : <div className="h-full animate-pulse bg-[#e4c9bd]" />}</></div>
         <div className="flex flex-col justify-center overflow-y-auto p-7 sm:p-12">
-          {productQuery.isError ? <div className="text-center"><CircleAlert className="mx-auto mb-3 text-[#b06258]" /><p className="text-sm text-[#765361]">This piece is taking a moment to appear.</p><button type="button" onClick={() => productQuery.refetch()} data-testid="button-retry-product" className="mt-4 text-xs font-bold uppercase tracking-widest text-[#b06258]">Try again</button></div> : product ? <><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#a36a5d]">{product.category} / {product.material}</p><h2 className="mt-3 font-editorial text-5xl leading-[.92] text-[#4b2739]">{product.name}</h2><p className="mt-5 text-2xl text-[#b06258]">{money(product.price, product.currency)}</p><p className="mt-6 text-sm leading-7 text-[#765361]">{product.description}</p><div className="mt-8 flex items-center gap-3 border-t border-[#e4cfc2] pt-6"><Sparkles size={18} className="text-[#c88740]" /><p className="text-xs leading-5 text-[#765361]">A small gesture with a point of view.</p></div><button type="button" onClick={() => { onAdd(product); onClose(); }} data-testid={`button-quick-add-${product.id}`} className="mt-8 flex items-center justify-center gap-2 rounded-full bg-[#4b2739] py-4 text-xs font-bold uppercase tracking-[0.18em] text-[#f9e9d8] transition-transform hover:-translate-y-0.5">Add to bag <Plus size={16} /></button></> : <div className="h-64 animate-pulse" />}
+          {product ? (
+            <>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#a36a5d]">{product.category} / {product.material}</p>
+              <h2 className="mt-3 font-editorial text-5xl leading-[.92] text-[#4b2739]">{product.name}</h2>
+              <p className="mt-5 text-2xl text-[#b06258]">{money(product.price, product.currency)}</p>
+              <p className="mt-6 text-sm leading-7 text-[#765361]">{product.description}</p>
+              <div className="mt-8 flex items-center gap-3 border-t border-[#e4cfc2] pt-6">
+                <Sparkles size={18} className="text-[#c88740]" />
+                <p className="text-xs leading-5 text-[#765361]">A small gesture with a point of view.</p>
+              </div>
+              <button type="button" onClick={() => { onAdd(product); onClose(); }} data-testid={`button-quick-add-${product.id}`} className="mt-8 flex items-center justify-center gap-2 rounded-full bg-[#4b2739] py-4 text-xs font-bold uppercase tracking-[0.18em] text-[#f9e9d8] transition-transform hover:-translate-y-0.5">
+                Add to bag <Plus size={16} />
+              </button>
+            </>
+          ) : productQuery.isError ? (
+            <div className="text-center">
+              <CircleAlert className="mx-auto mb-3 text-[#b06258]" />
+              <p className="text-sm text-[#765361]">This piece is taking a moment to appear.</p>
+              <button type="button" onClick={() => productQuery.refetch()} data-testid="button-retry-product" className="mt-4 text-xs font-bold uppercase tracking-widest text-[#b06258]">Try again</button>
+            </div>
+          ) : (
+            <div className="h-64 animate-pulse" />
+          )}
         </div>
       </div>
     </div>
@@ -167,14 +274,27 @@ function Home() {
   const [quickViewId, setQuickViewId] = useState<string | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const { toast } = useToast();
   const summaryQuery = useGetStoreSummary({ query: { queryKey: getGetStoreSummaryQueryKey() } });
   const productsQuery = useListProducts(category ? { category } : undefined, { query: { queryKey: getListProductsQueryKey(category ? { category } : undefined) } });
   const checkout = useCreateCheckoutSession();
-  const summary = summaryQuery.data;
-  const products = productsQuery.data || [];
-  const featured = summary?.featured || [];
+
+  const rawProducts = Array.isArray(productsQuery.data) ? productsQuery.data : null;
+  const rawSummary = (summaryQuery.data && typeof summaryQuery.data === 'object' && !Array.isArray(summaryQuery.data) && 'featured' in summaryQuery.data) ? summaryQuery.data : null;
+
+  const filteredDefault = useMemo(() => {
+    return category ? DEFAULT_PRODUCTS.filter((p) => p.category.toLowerCase() === category.toLowerCase()) : DEFAULT_PRODUCTS;
+  }, [category]);
+
+  const products = (rawProducts && rawProducts.length > 0) ? rawProducts : filteredDefault;
+  const featured = Array.isArray(rawSummary?.featured) && rawSummary.featured.length > 0 ? rawSummary.featured : DEFAULT_PRODUCTS.filter((p) => p.featured);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const visibleCategories = useMemo(() => summary?.categories || [], [summary?.categories]);
+  const visibleCategories = useMemo(() => {
+    if (Array.isArray(rawSummary?.categories) && rawSummary.categories.length > 0) {
+      return rawSummary.categories;
+    }
+    return Array.from(new Set(DEFAULT_PRODUCTS.map((p) => p.category)));
+  }, [rawSummary?.categories]);
 
   const addToCart = (product: Product) => {
     setCart((current) => {
@@ -191,8 +311,17 @@ function Home() {
       { data: { items: cart.map(({ product, quantity }) => ({ productId: product.id, quantity })) } },
       {
         onSuccess: (session) => {
-          setCheckoutUrl(session.url);
-          setCartOpen(true);
+          if (session?.url) {
+            setCheckoutUrl(session.url);
+            window.location.href = session.url;
+          }
+        },
+        onError: () => {
+          toast({
+            title: 'Checkout unavailable',
+            description: 'The backend payment server is not connected yet. Connect your backend API to enable live checkout.',
+            variant: 'destructive',
+          });
         },
       },
     );
@@ -233,7 +362,24 @@ function Home() {
           <div className="flex flex-col justify-between gap-7 sm:flex-row sm:items-end"><div><p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#b06258]">The collection</p><h2 className="mt-3 font-editorial text-5xl leading-none text-[#4b2739] sm:text-6xl">Your everyday, <em>edited.</em></h2></div><button type="button" onClick={() => setShopOpen(!shopOpen)} data-testid="button-filter-categories" className="flex items-center gap-2 self-start rounded-full border border-[#d9bdae] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.17em] text-[#765361] transition-colors hover:bg-[#efd1c0] sm:self-auto">Filter collection <ChevronDown size={15} className={`transition-transform ${shopOpen ? 'rotate-180' : ''}`} /></button></div>
           {shopOpen && <div className="scrollbar-hidden mt-7 flex gap-2 overflow-x-auto pb-1 elora-fade"><button type="button" onClick={() => { setCategory(undefined); setShopOpen(false); }} data-testid="button-category-all" className={`shrink-0 rounded-full px-5 py-2.5 text-xs font-semibold transition-colors ${!category ? 'bg-[#4b2739] text-[#f9e9d8]' : 'bg-[#efd1c0] text-[#765361] hover:bg-[#e3b7a2]'}`}>All pieces</button>{visibleCategories.map((item) => <button type="button" key={item} onClick={() => { setCategory(item); setShopOpen(false); }} data-testid={`button-category-${item}`} className={`shrink-0 rounded-full px-5 py-2.5 text-xs font-semibold transition-colors ${category === item ? 'bg-[#4b2739] text-[#f9e9d8]' : 'bg-[#efd1c0] text-[#765361] hover:bg-[#e3b7a2]'}`}>{item}</button>)}</div>}
           <div className="mt-12">
-            {productsQuery.isLoading ? <div className="grid grid-cols-1 gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-4"><ProductSkeleton /><ProductSkeleton /><ProductSkeleton /><ProductSkeleton /></div> : productsQuery.isError ? <div className="rounded-[1.5rem] border border-[#e0b8ab] bg-[#f5ded4] px-6 py-14 text-center"><CircleAlert className="mx-auto mb-4 text-[#b06258]" size={28} /><h3 className="font-editorial text-3xl text-[#4b2739]">The shelves are shy.</h3><p className="mx-auto mt-2 max-w-sm text-sm text-[#765361]">We could not bring the collection in right now. Give it another moment.</p><button type="button" onClick={() => productsQuery.refetch()} data-testid="button-retry-products" className="mt-6 rounded-full bg-[#4b2739] px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-[#f9e9d8]">Try again</button></div> : products.length === 0 ? <div className="rounded-[1.5rem] border border-dashed border-[#d9bdae] px-6 py-16 text-center"><Search className="mx-auto mb-4 text-[#b06258]" /><h3 className="font-editorial text-3xl text-[#4b2739]">A quiet shelf.</h3><p className="mt-2 text-sm text-[#765361]">No pieces in this edit just yet. Try another category.</p><button type="button" onClick={() => setCategory(undefined)} data-testid="button-clear-filter" className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-[#b06258]">See all pieces</button></div> : <div className="grid grid-cols-1 gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">{products.map((product) => <ProductCard key={product.id} product={product} onQuickView={setQuickViewId} onAdd={addToCart} />)}</div>}
+            {productsQuery.isLoading && !products.length ? (
+              <div className="grid grid-cols-1 gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+                <ProductSkeleton /><ProductSkeleton /><ProductSkeleton /><ProductSkeleton />
+              </div>
+            ) : products.length === 0 ? (
+              <div className="rounded-[1.5rem] border border-dashed border-[#d9bdae] px-6 py-16 text-center">
+                <Search className="mx-auto mb-4 text-[#b06258]" />
+                <h3 className="font-editorial text-3xl text-[#4b2739]">A quiet shelf.</h3>
+                <p className="mt-2 text-sm text-[#765361]">No pieces in this edit just yet. Try another category.</p>
+                <button type="button" onClick={() => setCategory(undefined)} data-testid="button-clear-filter" className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-[#b06258]">See all pieces</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} onQuickView={setQuickViewId} onAdd={addToCart} />
+                ))}
+              </div>
+            )}
           </div>
         </section>
         <section className="mx-auto max-w-[1440px] px-5 pb-20 sm:px-10 lg:px-14"><div className="relative overflow-hidden rounded-[1.75rem] bg-[#71384d] px-7 py-12 text-[#f9e9d8] sm:px-14 sm:py-16"><div className="absolute -right-16 -top-20 h-64 w-64 rounded-full border-[40px] border-[#d88670]/50" /><div className="absolute bottom-[-75px] right-[20%] h-48 w-48 rounded-full bg-[#f1b44d]/80" /><p className="relative text-[10px] font-bold uppercase tracking-[0.23em] text-[#f1b44d]">A note from the studio</p><h2 className="relative mt-4 max-w-2xl font-editorial text-5xl leading-[.9] sm:text-7xl">Keep the ordinary<br /><em>interesting.</em></h2><p className="relative mt-6 max-w-md text-sm leading-6 text-[#f4dacc]/80">ELORA is a small collection of things with a strong opinion about the everyday. Wear one. Wear three. Make the day yours.</p></div></section>

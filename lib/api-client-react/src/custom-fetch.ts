@@ -299,6 +299,15 @@ async function parseSuccessBody(
     return null;
   }
 
+  const mediaType = getMediaType(response.headers);
+  if (mediaType === "text/html") {
+    throw new ApiError(
+      response,
+      "Received HTML response instead of JSON from API endpoint",
+      requestInfo,
+    );
+  }
+
   const effectiveType =
     responseType === "auto" ? inferResponseType(response) : responseType;
 
