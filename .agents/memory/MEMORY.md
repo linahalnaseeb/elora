@@ -1,0 +1,1 @@
+- [Stripe preview navigation](stripe-preview-navigation.md) — hosted Checkout needs an explicit top-level link in the Replit preview iframe.

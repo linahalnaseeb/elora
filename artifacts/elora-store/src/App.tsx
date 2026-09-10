@@ -117,14 +117,20 @@ function CartDrawer({ cart, open, onClose, onChange, onRemove, onCheckout, check
             <div className="border-t border-[#e4cfc2] px-6 py-6">
               <div className="mb-5 flex items-center justify-between"><span className="text-sm text-[#765361]">Subtotal</span><span className="font-editorial text-3xl text-[#4b2739]">{money(total, cart[0]?.product.currency || 'USD')}</span></div>
               <p className="mb-4 text-[11px] leading-5 text-[#8e6b72]">Shipping and taxes are calculated securely at checkout.</p>
-              <button type="button" disabled={checkoutPending} onClick={onCheckout} data-testid="button-checkout" className="flex w-full items-center justify-center gap-2 rounded-full bg-[#4b2739] py-4 text-xs font-bold uppercase tracking-[0.18em] text-[#f9e9d8] transition-all hover:-translate-y-0.5 hover:bg-[#653247] disabled:cursor-wait disabled:opacity-70">
-                {checkoutPending ? <LoaderCircle className="animate-spin" size={16} /> : <><span>Continue to checkout</span><ArrowUpRight size={16} /></>}
-              </button>
+              {checkoutUrl ? (
+                <a href={checkoutUrl} target="_top" rel="noreferrer" data-testid="button-checkout-ready" className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f1b44d] py-4 text-xs font-bold uppercase tracking-[0.18em] text-[#4b2739] transition-all hover:-translate-y-0.5 hover:bg-[#e5a83f]">
+                  <span>Continue to Stripe checkout</span><ArrowUpRight size={16} />
+                </a>
+              ) : (
+                <button type="button" disabled={checkoutPending} onClick={onCheckout} data-testid="button-checkout" className="flex w-full items-center justify-center gap-2 rounded-full bg-[#4b2739] py-4 text-xs font-bold uppercase tracking-[0.18em] text-[#f9e9d8] transition-all hover:-translate-y-0.5 hover:bg-[#653247] disabled:cursor-wait disabled:opacity-70">
+                  {checkoutPending ? <LoaderCircle className="animate-spin" size={16} /> : <><span>Continue to checkout</span><ArrowUpRight size={16} /></>}
+                </button>
+              )}
               {checkoutUrl && (
                 <div className="mt-4 rounded-2xl border border-[#e0b8ab] bg-[#f5ded4] px-4 py-4">
-                  <p className="text-xs leading-5 text-[#765361]">If the secure checkout did not open automatically, continue here.</p>
-                  <a href={checkoutUrl} target="_blank" rel="noreferrer" data-testid="link-open-checkout" className="mt-3 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#4b2739] underline decoration-[#c88740] decoration-2 underline-offset-4">
-                    Open secure checkout <ArrowUpRight size={14} />
+                  <p className="text-xs leading-5 text-[#765361]">Your secure Stripe payment page is ready.</p>
+                  <a href={checkoutUrl} target="_top" rel="noreferrer" data-testid="link-open-checkout" className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f1b44d] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.15em] text-[#4b2739] transition-transform hover:-translate-y-0.5">
+                    Continue to Stripe checkout <ArrowUpRight size={14} />
                   </a>
                 </div>
               )}
@@ -186,7 +192,7 @@ function Home() {
       {
         onSuccess: (session) => {
           setCheckoutUrl(session.url);
-          window.location.href = session.url;
+          setCartOpen(true);
         },
       },
     );
