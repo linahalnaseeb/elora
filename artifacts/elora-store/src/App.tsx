@@ -84,7 +84,7 @@ function ProductSkeleton() {
   return <div className="animate-pulse"><div className="aspect-[4/5] rounded-[1.35rem] bg-[#e4c9bd]" /><div className="mt-4 h-3 w-20 rounded-full bg-[#e4c9bd]" /><div className="mt-2 h-7 w-36 rounded-full bg-[#e4c9bd]" /></div>;
 }
 
-function CartDrawer({ cart, open, onClose, onChange, onRemove, onCheckout, checkoutPending }: { cart: CartLine[]; open: boolean; onClose: () => void; onChange: (id: string, quantity: number) => void; onRemove: (id: string) => void; onCheckout: () => void; checkoutPending: boolean }) {
+function CartDrawer({ cart, open, onClose, onChange, onRemove, onCheckout, checkoutPending, checkoutUrl }: { cart: CartLine[]; open: boolean; onClose: () => void; onChange: (id: string, quantity: number) => void; onRemove: (id: string) => void; onCheckout: () => void; checkoutPending: boolean; checkoutUrl: string | null }) {
   const total = cart.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
   return (
     <>
@@ -120,6 +120,14 @@ function CartDrawer({ cart, open, onClose, onChange, onRemove, onCheckout, check
               <button type="button" disabled={checkoutPending} onClick={onCheckout} data-testid="button-checkout" className="flex w-full items-center justify-center gap-2 rounded-full bg-[#4b2739] py-4 text-xs font-bold uppercase tracking-[0.18em] text-[#f9e9d8] transition-all hover:-translate-y-0.5 hover:bg-[#653247] disabled:cursor-wait disabled:opacity-70">
                 {checkoutPending ? <LoaderCircle className="animate-spin" size={16} /> : <><span>Continue to checkout</span><ArrowUpRight size={16} /></>}
               </button>
+              {checkoutUrl && (
+                <div className="mt-4 rounded-2xl border border-[#e0b8ab] bg-[#f5ded4] px-4 py-4">
+                  <p className="text-xs leading-5 text-[#765361]">If the secure checkout did not open automatically, continue here.</p>
+                  <a href={checkoutUrl} target="_blank" rel="noreferrer" data-testid="link-open-checkout" className="mt-3 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#4b2739] underline decoration-[#c88740] decoration-2 underline-offset-4">
+                    Open secure checkout <ArrowUpRight size={14} />
+                  </a>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -152,6 +160,7 @@ function Home() {
   const [cartOpen, setCartOpen] = useState(false);
   const [quickViewId, setQuickViewId] = useState<string | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const summaryQuery = useGetStoreSummary({ query: { queryKey: getGetStoreSummaryQueryKey() } });
   const productsQuery = useListProducts(category ? { category } : undefined, { query: { queryKey: getListProductsQueryKey(category ? { category } : undefined) } });
   const checkout = useCreateCheckoutSession();
@@ -171,7 +180,16 @@ function Home() {
   const changeQuantity = (id: string, quantity: number) => setCart((current) => quantity < 1 ? current.filter((line) => line.product.id !== id) : current.map((line) => line.product.id === id ? { ...line, quantity: Math.min(10, quantity) } : line));
   const startCheckout = () => {
     if (!cart.length) return;
-    checkout.mutate({ data: { items: cart.map(({ product, quantity }) => ({ productId: product.id, quantity })) } }, { onSuccess: (session) => { window.location.assign(session.url); } });
+    setCheckoutUrl(null);
+    checkout.mutate(
+      { data: { items: cart.map(({ product, quantity }) => ({ productId: product.id, quantity })) } },
+      {
+        onSuccess: (session) => {
+          setCheckoutUrl(session.url);
+          window.location.href = session.url;
+        },
+      },
+    );
   };
 
   return (
@@ -215,7 +233,7 @@ function Home() {
         <section className="mx-auto max-w-[1440px] px-5 pb-20 sm:px-10 lg:px-14"><div className="relative overflow-hidden rounded-[1.75rem] bg-[#71384d] px-7 py-12 text-[#f9e9d8] sm:px-14 sm:py-16"><div className="absolute -right-16 -top-20 h-64 w-64 rounded-full border-[40px] border-[#d88670]/50" /><div className="absolute bottom-[-75px] right-[20%] h-48 w-48 rounded-full bg-[#f1b44d]/80" /><p className="relative text-[10px] font-bold uppercase tracking-[0.23em] text-[#f1b44d]">A note from the studio</p><h2 className="relative mt-4 max-w-2xl font-editorial text-5xl leading-[.9] sm:text-7xl">Keep the ordinary<br /><em>interesting.</em></h2><p className="relative mt-6 max-w-md text-sm leading-6 text-[#f4dacc]/80">ELORA is a small collection of things with a strong opinion about the everyday. Wear one. Wear three. Make the day yours.</p></div></section>
       </main>
       <footer className="border-t border-[#e4cfc2] px-5 py-8 sm:px-10 lg:px-14"><div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[#a36a5d] sm:flex-row"><span>ELORA / Objects with feeling</span><span>Designed for the in-between moments</span></div></footer>
-      <CartDrawer cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} onChange={changeQuantity} onRemove={(id) => changeQuantity(id, 0)} onCheckout={startCheckout} checkoutPending={checkout.isPending} />
+      <CartDrawer cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} onChange={changeQuantity} onRemove={(id) => changeQuantity(id, 0)} onCheckout={startCheckout} checkoutPending={checkout.isPending} checkoutUrl={checkoutUrl} />
       <QuickView productId={quickViewId} onClose={() => setQuickViewId(null)} onAdd={addToCart} />
     </div>
   );
