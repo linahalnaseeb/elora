@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: catalog
+    description: ELORA product catalog
+  - name: checkout
+    description: Stripe checkout operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,85 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /products:
+    get:
+      operationId: listProducts
+      tags: [catalog]
+      summary: List ELORA accessories
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: featured
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Product catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [catalog]
+      summary: Get an ELORA accessory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+  /store/summary:
+    get:
+      operationId: getStoreSummary
+      tags: [catalog]
+      summary: Get curated store highlights
+      responses:
+        "200":
+          description: Store summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreSummary"
+  /checkout/session:
+    post:
+      operationId: createCheckoutSession
+      tags: [checkout]
+      summary: Create a Stripe Checkout session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutInput"
+      responses:
+        "200":
+          description: Stripe Checkout session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSession"
+        "400":
+          description: Invalid cart
+        "502":
+          description: Payment provider unavailable
 components:
   schemas:
     HealthStatus:
@@ -33,4 +116,91 @@ components:
           type: string
       required:
         - status
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - category
+        - description
+        - price
+        - currency
+        - image
+        - material
+        - featured
+        - badge
+        - stripePriceId
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        image:
+          type: string
+        material:
+          type: string
+        featured:
+          type: boolean
+        badge:
+          type: ["string", "null"]
+        stripePriceId:
+          type: ["string", "null"]
+    StoreSummary:
+      type: object
+      required:
+        - featured
+        - categories
+        - productCount
+      properties:
+        featured:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        categories:
+          type: array
+          items:
+            type: string
+        productCount:
+          type: integer
+    CheckoutLineItem:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 10
+    CheckoutInput:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/CheckoutLineItem"
+    CheckoutSession:
+      type: object
+      required:
+        - sessionId
+        - url
+      properties:
+        sessionId:
+          type: string
+        url:
+          type: string
 

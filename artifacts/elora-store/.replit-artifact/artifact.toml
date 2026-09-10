@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "ELORA Accessories Store"
+description = "A refined accessories storefront for ELORA with a curated product catalog, cart interactions, and secure Stripe test checkout backed by an Express API."
+version = "1.0.0"
+id = "artifacts/elora-store"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21119
+
+[services.development]
+run = "pnpm --filter @workspace/elora-store run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/elora-store", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/elora-store/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21119"
+BASE_PATH = "/"
