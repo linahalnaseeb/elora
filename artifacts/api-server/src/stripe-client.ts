@@ -1,6 +1,12 @@
-import { ReplitConnectors } from "@replit/connectors-sdk";
-
-const connectors = new ReplitConnectors();
+function getStripeSecretKey(): string {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error(
+      "STRIPE_SECRET_KEY environment variable is not configured. Please add STRIPE_SECRET_KEY to your Render environment variables.",
+    );
+  }
+  return key;
+}
 
 type StripeResponse<T> = {
   id?: string;
@@ -14,12 +20,16 @@ async function stripeRequest<T>(
   path: string,
   options: { method?: string; body?: URLSearchParams } = {},
 ): Promise<StripeResponse<T>> {
-  const response = await connectors.proxy("stripe", path, {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const response = await fetch(`https://api.stripe.com${cleanPath}`, {
     method: options.method ?? "GET",
     body: options.body,
-    headers: options.body
-      ? { "Content-Type": "application/x-www-form-urlencoded" }
-      : undefined,
+    headers: {
+      Authorization: `Bearer ${getStripeSecretKey()}`,
+      ...(options.body
+        ? { "Content-Type": "application/x-www-form-urlencoded" }
+        : {}),
+    },
   });
 
   const payload = (await response.json()) as StripeResponse<T> & {

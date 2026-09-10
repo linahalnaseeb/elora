@@ -86,11 +86,18 @@ router.post("/checkout/session", async (req, res) => {
       }),
     );
 
-    const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
-    const requestOrigin = req.get("origin");
+    const requestOrigin =
+      req.get("origin") ||
+      (req.get("referer") ? new URL(req.get("referer")!).origin : undefined);
+    const domain =
+      process.env.FRONTEND_URL ||
+      (process.env.REPLIT_DOMAINS
+        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+        : undefined);
     const baseUrl =
       requestOrigin ||
-      (domain ? `https://${domain}` : "http://localhost:80");
+      domain ||
+      "https://elora-store-y1a8p7g77-linah1.vercel.app";
     const session = await createCheckoutSession({
       lineItems,
       successUrl: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
