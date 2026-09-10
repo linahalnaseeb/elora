@@ -6,9 +6,8 @@ import { setBaseUrl } from '@workspace/api-client-react';
 
 import './index.css';
 
-if (import.meta.env.VITE_API_URL) {
-  setBaseUrl(import.meta.env.VITE_API_URL);
-}
+const apiUrl = import.meta.env.VITE_API_URL || 'https://elora-sx6w.onrender.com';
+setBaseUrl(apiUrl);
 
 createRoot(document.getElementById('root')!, {
   // Keeps caught errors off reportError(), which would raise the dev overlay.
